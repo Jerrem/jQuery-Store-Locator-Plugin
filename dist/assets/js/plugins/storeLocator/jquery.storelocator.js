@@ -1,7 +1,3 @@
-/*! jQuery Google Maps Store Locator - v2.6.2 - 2016-07-19
-* http://www.bjornblog.com/web/jquery-store-locator-plugin
-* Copyright (c) 2016 Bjorn Holine; Licensed MIT */
-
 ;(function ($, window, document, undefined) {
 	'use strict';
 
@@ -1143,7 +1139,13 @@
 					// Focus on the list
 					var markerId = marker.get('id');
 					var $selectedLocation = $('.' + _this.settings.locationList + ' li[data-markerid=' + markerId + ']');
-
+										
+					// Zoom map to selected marker - Jerrem Sept 2016
+					var map = marker.get('map');
+					var selectedMarker = markers[markerId];
+					map.panTo(selectedMarker.getPosition());
+					setTimeout(function () { map.setZoom(originalZoom) }, 500);
+					
 					if ($selectedLocation.length > 0) {
 						// Marker click callback
 						if (_this.settings.callbackMarkerClick) {
@@ -2244,6 +2246,23 @@
 
 			// Initialize the infowondow
 			var infowindow = new google.maps.InfoWindow();
+			
+			// Change map view to show users location and closest locations - Jerrem Sept 2016
+			if (typeof origin !== 'undefined') {
+			    function sortNumber(a, b) {
+			        return a - b;
+			    }
+			    var bLats = [orig_lat, locationset[0]['lat'], locationset[1]['lat']];
+			    var bLngs = [orig_lng, locationset[0]['lng'], locationset[1]['lng']];
+			    bLats.sort(sortNumber);
+			    bLngs.sort(sortNumber);
+			    var originBounds = new google.maps.LatLngBounds(
+                   new google.maps.LatLng(bLats[0], bLngs[0]),
+                    new google.maps.LatLng(bLats[2], bLngs[2])
+                    );
+			    map.panToBounds(originBounds);
+			    map.fitBounds(originBounds);
+			} 
 
 			// Add origin marker if the setting is set
 			if (_this.settings.originMarker === true) {
@@ -2366,6 +2385,26 @@
 				}
 				else {
 					_this.createInfowindow(selectedMarker, listLoc, infowindow, storeStart, page);
+				}
+				
+				//Zoom on list click - Jerrem Sept 2016
+				if (typeof origin == 'undefined') {
+				    map.panTo(selectedMarker.getPosition());
+				    setTimeout(function () { map.setZoom(originalZoom) }, 300);
+				} else {
+				    function sortNumber(a, b) {
+				        return a - b;
+				    }
+				    var bLats = [orig_lat, selectedMarker.getPosition().lat()];
+				    var bLngs = [orig_lng, selectedMarker.getPosition().lng()];
+				    bLats.sort(sortNumber);
+				    bLngs.sort(sortNumber);
+				    var originBounds = new google.maps.LatLngBounds(
+                       new google.maps.LatLng(bLats[0] - 0.002, bLngs[0] + 0.001),
+                        new google.maps.LatLng(bLats[1], bLngs[1])
+                        );
+				    map.panToBounds(originBounds);
+				    map.fitBounds(originBounds);
 				}
 
 				// Custom selected marker override
